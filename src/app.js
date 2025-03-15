@@ -1,9 +1,16 @@
 import express from "express" ;
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import { ErrorHandler } from "./utils/ApiError.js";
+import { connection } from "./db/db.connection.js";
+import  {errorUtils}  from "./utils/ApiError.js";
+import userRouter from "./routes/user.routes.js";
+import {config} from "dotenv" ;
+
+
 
 export const app = express();
+
+config({path: "./.env"});
 
 app.use(cors({
     origin:["process.env.CORS_ORIGIN"],
@@ -16,7 +23,11 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 
+app.use("/api/v1/user",userRouter)
 
-app.use(ErrorHandler)
+
+connection();
+
+app.use(errorUtils)
 
 
