@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { sendEmail } from "../middlewares/email.middleware.js";
 import twilio from "twilio";
 import { sendToken } from "../config/token.config.js";
+import crypto from "crypto";
 
 const client = twilio(process.env.TWILIO_SID , process.env.TWILIO_AUTH_TOKEN)
 
@@ -236,5 +237,89 @@ export const login = asyncHandler(async (req ,res ,next) => {
 })
    
     
+export const logout = asyncHandler(async (req, res ,next) => {
+    res.status(200).cookie("token" , "" , {
+        expires: new Date(Date.now()),
+        httpOnly: true,
+    }).json({
+        success: true,
+        message: "Logged out succefully",
+    })
+})
 
+export const getUser = asyncHandler(async (req ,res ,next) => {
+    const user = req.user
+    res.status(200).json({
+        success: true,
+        user,
+    })
+})
 
+export const forgotPassword = asyncHandler(async (req, res,next) => {
+    const user = await User.findOne({
+        email: req.body.email,
+        accountVerified:true
+    })
+    if(!user){
+        return next (new ErrorHandler("User not found" , 404))
+    }
+    
+    const resetToken = user.generateResetPasswordToken();
+
+    await user.save({validateBeforeSave: false})
+
+    const resetPasswordUrl = `${process.env.CORS_URL}/password/reset/${resetToken}`
+
+    const message = `Yoir Reset Password Token is:- \n\n ${resetPasswordUrl} \n\n If you have not requested this email then ignore it. `
+
+    try {
+        sendEmail({email: user.email,
+            subject: "RESET PASSWORD",
+            message,
+        })
+        res.status(200).json({
+            success: true,
+            message: `Email sent to ${user.email} successfully `
+        })
+    } catch (error) {
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire= undefined;
+        await user.save({validateBeforeSave: false})
+
+        return next(new ErrorHandler(
+            error.message ? error.message: "Cannot send reset password token" , 500
+        ))
+    }
+})
+
+export const resetPassword = asyncHandler(async (req, res, next) => {
+    const {token} = req.params
+    const resetPasswordToken = crypto.createHash("sha256").update(token).digest("hex")
+    const user = await User.findOne({
+        resetPasswordToken,
+        resetPasswordExpire: {$gt : Date.now()},
+    })
+
+    if(!user) {
+        return next(
+           new   ErrorHandler(
+                "Reset Passowrd token is invalid or has been expired.",
+                400
+            )
+        )
+    }
+    if(req.body.password !== req.body.confirmPassword){
+        return next(
+           new ErrorHandler(
+                "Password & Confirm password don not match",
+                400
+            )
+        )
+    }
+    user.password = req.body.password
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire= undefined;
+    await user.save()
+
+    sendToken(user,200,"Reset Password Succefully" , res)
+})
