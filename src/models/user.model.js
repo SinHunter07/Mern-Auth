@@ -1,13 +1,14 @@
 import mongoose , {Schema} from "mongoose";
 import bcrypt from "bcrypt"
-
+import jwt from 'jsonwebtoken'
 const userSchema = new Schema({
     name: String,
     email: String,
     password: {
         type: String,
         minLength: [8, "Password must have at least 8 characters"],
-        maxLength: [32, "Password cannot have more than 32 characters"]
+        maxLength: [32, "Password cannot have more than 32 characters"],
+        select: false
     },
     phone: String,
     accountVerified: {
@@ -29,7 +30,7 @@ userSchema.pre("save" , async function (next) {
 })
 
 userSchema.methods.comparePassword = async function (enteredPassword) {
-    bcrypt.compare(enteredPassword , this.password)
+   return await bcrypt.compare(enteredPassword , this.password)
 }
 
 userSchema.methods.generateVerificationCode = function () {
@@ -45,6 +46,12 @@ userSchema.methods.generateVerificationCode = function () {
     this.verificationCodeExpire = Date.now() + 5*60*1000
  
     return verificationCode
+}
+
+userSchema.methods.generateToken = async function () {
+    return await jwt.sign({id:this._id} , process.env.JWT_SECRET_KEY , {
+        expiresIn: process.env.JWT_EXPIRE
+    })
 }
 
 export const User = mongoose.model("User" , userSchema)

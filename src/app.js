@@ -4,13 +4,13 @@ import cors from "cors";
 import { connection } from "./db/db.connection.js";
 import  {errorUtils}  from "./utils/ApiError.js";
 import userRouter from "./routes/user.routes.js";
-import {config} from "dotenv" ;
+
 
 
 
 export const app = express();
 
-config({path: "./.env"});
+
 
 app.use(cors({
     origin:["process.env.CORS_ORIGIN"],
