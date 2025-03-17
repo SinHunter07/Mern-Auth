@@ -93,14 +93,19 @@ export const register = asyncHandler(async (req ,res , next) => {
                  .split("")
                  .join(" ");
                  await client.calls.create({
-                    twiml: `<Response><Say>Your verification code is ${verificationCodeWithSpace}. Your verification code is ${verificationCodeWithSpace}.</Say></Response>`,
+                    twiml: `<Response><Say> Your verification code is ${verificationCodeWithSpace}. Your verification code is ${verificationCodeWithSpace}.</Say></Response>`,
                     from: process.env.TWILIO_PHONE_NUMBER,
                     to: phone,
                   });
-                 res.status(200).json({
+                await client.messages.create({
+                    body: `Your verification code is ${verificationCodeWithSpace}.`,
+                    from: process.env.TWILIO_PHONE_NUMBER,
+                    to: phone,
+                })
+                res.status(200).json({
                     success:true,
                     message: `OTP sent`
-                })
+                }) 
              } else {
                 return res.status(500).json({
                     success:false,
