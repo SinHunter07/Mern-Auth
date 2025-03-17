@@ -51,7 +51,7 @@ export const register = asyncHandler(async (req ,res , next) => {
             ]
         })
 
-        if(registerationAttemptsByUser.length > 3){
+        if(registerationAttemptsByUser.length > 5){
             return next(
                 new ErrorHandler(
                     "you Have exceeded the maximum number of attempts (3). Please try again after an hour",
